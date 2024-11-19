@@ -20,7 +20,11 @@
             <input type="number" id="productQuantity" placeholder="Quantidade Inicial" required>
             <button type="submit">Cadastrar Produto</button>
         </form>
-
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Pesquisar produtos...">
+            <button onclick="searchProducts()">Buscar</button>
+        </div>
+        
         <h2>Lista de Produtos</h2>
         <ul id="productList"></ul>
     </div>

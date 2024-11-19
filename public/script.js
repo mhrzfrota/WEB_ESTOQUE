@@ -59,3 +59,29 @@ async function deleteProduct(id) {
 }
 
 loadProducts();
+
+async function searchProducts() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const response = await fetch('/api/products');
+    const products = await response.json();
+
+    const filteredProducts = products.filter(product =>
+        product.nome.toLowerCase().includes(searchTerm)
+    );
+
+    displayProducts(filteredProducts);
+}
+
+function displayProducts(products) {
+    productList.innerHTML = '';
+    products.forEach((product) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <strong>${product.nome}</strong> - ${product.descricao} - ${product.categoria} - 
+            Código: ${product.cod_produto} - Preço: R$ ${product.preco.toFixed(2)} - 
+            Quantidade: ${product.qtd_inicial}
+            <button onclick="deleteProduct(${product.id})">Excluir</button>
+        `;
+        productList.appendChild(li);
+    });
+}
