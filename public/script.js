@@ -23,6 +23,7 @@ productForm.addEventListener('submit', async (event) => {
 
     if (response.ok) {
         loadProducts();
+        verificarEstoque();
         productForm.reset();
     } else {
         console.error('Erro ao cadastrar o produto');
@@ -40,7 +41,8 @@ async function loadProducts() {
             <strong>${product.nome}</strong> - ${product.descricao} - ${product.categoria} - 
             Código: ${product.cod_produto} - Preço: R$ ${product.preco.toFixed(2)} - 
             Quantidade: ${product.qtd_inicial}
-            <button onclick="deleteProduct(${product.id})">Excluir</button>
+            <button class="btn-excluir" onclick="deleteProduct(${product.id})">Excluir</button>
+            <button class="btn-vender" onclick="deleteProduct(${product.id})">Vender</button>
         `;
         productList.appendChild(li);
     });
@@ -53,9 +55,21 @@ async function deleteProduct(id) {
 
     if (response.ok) {
         loadProducts();
+        verificarEstoque();
     } else {
         console.error('Erro ao excluir o produto');
     }
+}
+
+async function verificarEstoque() {
+    const response = await fetch('/api/products');
+    const products = await response.json();
+
+    products.forEach(product => {
+        if (product.qtd_inicial <= 5) {
+            console.log(`Atenção! O produto "${product.nome}" está com apenas ${product.qtd_inicial} unidades em estoque.`);
+        }
+    });
 }
 
 loadProducts();

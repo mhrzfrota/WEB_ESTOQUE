@@ -53,7 +53,7 @@ textarea {
 button {
     padding: 0.8rem 1.2rem;
     border: none;
-    background-color: #007bff;
+    background-color: green;
     color: #fff;
     font-weight: bold;
     border-radius: 4px;
@@ -88,11 +88,28 @@ button:hover {
 }
 
 #productList li button {
-    background-color: #dc3545;
     padding: 0.5rem 1rem;
     border-radius: 4px;
 }
 
 #productList li button:hover {
     background-color: #c82333;
+}
+
+.btn-vender {
+    background-color: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-excluir {
+    background-color: red;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.8;
 }
