@@ -109,6 +109,12 @@ button:hover {
     border: none;
     cursor: pointer;
 }
+.btn-editar{
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
 
 button:hover {
     opacity: 0.8;
