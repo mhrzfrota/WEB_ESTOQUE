@@ -6,203 +6,207 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-//middleware(Conexao front com back)
 app.use(cors({
-    origin: 'http://localhost:3000', // or your frontend URL
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-  }));
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
-app.use(express.static('public')); 
+app.use(express.static('public'));
 
+// User registration
 app.post('/api/register', async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
+  try {
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-        return res.status(400).json({ error: error.message });
-    }
+    if (error) throw error;
     res.status(201).json({ message: 'Usuário registrado com sucesso!', data });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(400).json({ error: error.message });
+  }
 });
 
+// User login
 app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-
-        if (error) {
-            return res.status(400).json({ error: error.message });
-        }
-
-        res.status(200).json({ message: 'Login realizado com sucesso!', data });
-    } catch (err) {
-        console.error('Erro no login:', err);
-        res.status(500).json({ error: 'Erro no servidor' });
-    }
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    res.status(200).json({ message: 'Login realizado com sucesso!', data });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(400).json({ error: error.message });
+  }
 });
 
-
-app.get('/api/products/:id', async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log('Fetching product with ID:', id);
-  
-      const { data, error } = await supabase
-        .from('estoque')
-        .select('*')
-        .eq('id', id)
-        .single();
-  
-      if (error) {
-        console.error('Supabase error:', error);
-        // Always send JSON response, even for errors
-        return res.status(400).json({
-          error: error.message,
-          details: error
-        });
-      }
-  
-      if (!data) {
-        // Send JSON for 404 cases
-        return res.status(404).json({
-          error: 'Product not found',
-          productId: id
-        });
-      }
-  
-      // Set proper content type and send JSON response
-      res.setHeader('Content-Type', 'application/json');
-      res.json(data);
-  
-    } catch (err) {
-      console.error('Server error:', err);
-      // Ensure error responses are also JSON
-      res.status(500).json({
-        error: 'Internal server error',
-        details: err.message
-      });
+// Get all products
+app.get('/api/products', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('estoque').select('*');
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
     }
-  });
-  
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
-
+// Add a new product
 app.post('/api/products', async (req, res) => {
+  try {
     const { nome, descricao, categoria, cod_produto, preco, qtd_inicial } = req.body;
 
-    const { data, error } = await supabase
-        .from('estoque')
-        .insert([{ nome, descricao, categoria, cod_produto, preco, qtd_inicial }]);
-
-    if (error) {
-        return res.status(400).json({ error: error.message });
+    if (!nome || !cod_produto || !preco || qtd_inicial === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-    res.status(201).json({ message: 'Produto adicionado com sucesso!', data });
+
+    const { data, error } = await supabase
+      .from('estoque')
+      .insert([{ nome, descricao, categoria, cod_produto, preco, qtd_inicial, qtd_vendida: 0 }])
+      .select();
+
+    if (error) throw error;
+
+    res.status(201).json({ message: 'Produto adicionado com sucesso!', data: data[0] });
+  } catch (error) {
+    console.error('Error adding product:', error);
+    res.status(400).json({ error: error.message });
+  }
 });
 
+// Delete a product
 app.delete('/api/products/:id', async (req, res) => {
+  try {
     const { id } = req.params;
-
     const { error } = await supabase.from('estoque').delete().eq('id', id);
-    if (error) {
-        return res.status(400).json({ error: error.message });
-    }
+    if (error) throw error;
     res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 // Update product information
 app.put('/api/products/:id', async (req, res) => {
+  try {
     const { id } = req.params;
     const { nome, descricao, categoria, cod_produto, preco, qtd_inicial } = req.body;
-  
+
     const { data, error } = await supabase
       .from('estoque')
       .update({ nome, descricao, categoria, cod_produto, preco, qtd_inicial })
-      .eq('id', id);
-  
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
     res.status(200).json({ message: 'Produto atualizado com sucesso!', data });
-  });
-  
-  // Sell a product (reduce quantity by 1)
-  // In your server.js file
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+// Sell a product (reduce quantity by 1)
 app.post('/api/products/:id/sell', async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log('Received sell request for product:', id);
-  
-      // First, get the current quantity
-      const { data: product, error: fetchError } = await supabase
-        .from('estoque')
-        .select('qtd_inicial')
-        .eq('id', id)
-        .single();
-  
-      if (fetchError) {
-        console.error('Error fetching product:', fetchError);
-        return res.status(400).json({ error: fetchError.message });
-      }
-  
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-  
-      if (product.qtd_inicial <= 0) {
-        return res.status(400).json({ error: 'Product out of stock' });
-      }
-  
-      // Update the quantity
-      const { data, error } = await supabase
-        .from('estoque')
-        .update({ qtd_inicial: product.qtd_inicial - 1 })
-        .eq('id', id)
-        .select();
-  
-      if (error) {
-        console.error('Error updating product:', error);
-        return res.status(400).json({ error: error.message });
-      }
-  
-      res.status(200).json({ 
-        message: 'Product sold successfully!', 
-        newQuantity: product.qtd_inicial - 1 
-      });
-    } catch (err) {
-      console.error('Server error:', err);
-      res.status(500).json({ error: 'Internal server error' });
+  try {
+    const { id } = req.params;
+
+    // Fetch the product to get the current stock and quantity sold
+    const { data: product, error: fetchError } = await supabase
+      .from('estoque')
+      .select('qtd_inicial, qtd_vendida')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!product) return res.status(404).json({ error: 'Produto não encontrado' });
+
+    // Validate if stock is available
+    if (product.qtd_inicial <= 0) {
+      return res.status(400).json({ error: 'Produto fora de estoque' });
     }
-  });
-  
-  // Get sales statistics
-  app.get('/api/statistics', async (req, res) => {
+
+    // Update the product's quantities
+    const { error: updateError } = await supabase
+      .from('estoque')
+      .update({
+        qtd_inicial: product.qtd_inicial - 1, // Reduce stock by 1
+        qtd_vendida: (product.qtd_vendida || 0) + 1 // Increment sold quantity
+      })
+      .eq('id', id);
+
+    if (updateError) throw updateError;
+
+    res.status(200).json({
+      message: 'Produto vendido com sucesso!',
+      novoEstoque: product.qtd_inicial - 1,
+      quantidadeVendida: (product.qtd_vendida || 0) + 1
+    });
+  } catch (error) {
+    console.error('Erro ao vender produto:', error.message);
+    res.status(500).json({ error: 'Erro ao processar a venda do produto' });
+  }
+});
+
+app.get('/api/products/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
     const { data, error } = await supabase
-      .from('vendas')
-      .select('produto_id, quantidade')
-      .join('estoque', { 'estoque.id': 'vendas.produto_id' });
-  
+      .from('estoque')
+      .select('*')
+      .eq('id', id)
+      .single(); // O ".single()" garante que apenas um único produto seja retornado
+
     if (error) {
-      return res.status(500).json({ error: error.message });
+      throw error; // Caso haja erro no Supabase
     }
-  
-    const statistics = data.reduce((acc, sale) => {
-      if (!acc[sale.produto_id]) {
-        acc[sale.produto_id] = { nome: sale.estoque.nome, total: 0 };
-      }
-      acc[sale.produto_id].total += sale.quantidade;
-      return acc;
-    }, {});
-  
-    res.status(200).json(Object.values(statistics));
-  });
+
+    if (!data) {
+      return res.status(404).json({ error: 'Produto não encontrado' });
+    }
+
+    res.json(data); // Retorna o produto encontrado
+  } catch (error) {
+    console.error('Erro ao buscar produto:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Get sales statistics
+app.get('/api/statistics', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('estoque')
+      .select('id, nome, qtd_vendida, preco');
+
+    if (error) throw error;
+
+    const statistics = (data || []).filter(product => product.qtd_vendida > 0).map(product => ({
+      id: product.id,
+      nome: product.nome,
+      qtd_vendida: product.qtd_vendida,
+      valor_total: product.qtd_vendida * product.preco
+    }));
+
+    res.status(200).json(statistics);
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
