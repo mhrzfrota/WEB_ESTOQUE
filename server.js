@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -8,16 +9,24 @@ const PORT = process.env.PORT || 3000;
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
+// Configurar CORS
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Configurações básicas do servidor
 app.use(express.json());
 app.use(express.static('public'));
 
-// User registration
+// Rota raiz para redirecionar para login.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html')); // Serve o login.html como página inicial
+});
+
+// Rota de registro de usuário
 app.post('/api/register', async (req, res) => {
   const { email, password } = req.body;
 
@@ -26,12 +35,12 @@ app.post('/api/register', async (req, res) => {
     if (error) throw error;
     res.status(201).json({ message: 'Usuário registrado com sucesso!', data });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Erro ao registrar usuário:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
-// User login
+// Rota de login de usuário
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -40,33 +49,30 @@ app.post('/api/login', async (req, res) => {
     if (error) throw error;
     res.status(200).json({ message: 'Login realizado com sucesso!', data });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Erro ao realizar login:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Get all products
+// Rota para obter todos os produtos
 app.get('/api/products', async (req, res) => {
   try {
     const { data, error } = await supabase.from('estoque').select('*');
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
-    res.json(data);
+    if (error) throw error;
+    res.status(200).json(data);
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Erro ao buscar produtos:', error);
+    res.status(500).json({ error: 'Erro interno ao buscar produtos' });
   }
 });
 
-// Add a new product
+// Rota para adicionar um novo produto
 app.post('/api/products', async (req, res) => {
   try {
     const { nome, descricao, categoria, cod_produto, preco, qtd_inicial } = req.body;
 
     if (!nome || !cod_produto || !preco || qtd_inicial === undefined) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Campos obrigatórios estão faltando' });
     }
 
     const { data, error } = await supabase
@@ -78,12 +84,12 @@ app.post('/api/products', async (req, res) => {
 
     res.status(201).json({ message: 'Produto adicionado com sucesso!', data: data[0] });
   } catch (error) {
-    console.error('Error adding product:', error);
+    console.error('Erro ao adicionar produto:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Delete a product
+// Rota para excluir um produto
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -91,12 +97,12 @@ app.delete('/api/products/:id', async (req, res) => {
     if (error) throw error;
     res.status(204).send();
   } catch (error) {
-    console.error('Error deleting product:', error);
+    console.error('Erro ao excluir produto:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Update product information
+// Rota para atualizar informações de um produto
 app.put('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -111,18 +117,16 @@ app.put('/api/products/:id', async (req, res) => {
     if (error) throw error;
     res.status(200).json({ message: 'Produto atualizado com sucesso!', data });
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error('Erro ao atualizar produto:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
-
-// Sell a product (reduce quantity by 1)
+// Rota para registrar venda de um produto
 app.post('/api/products/:id/sell', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Fetch the product to get the current stock and quantity sold
     const { data: product, error: fetchError } = await supabase
       .from('estoque')
       .select('qtd_inicial, qtd_vendida')
@@ -132,17 +136,15 @@ app.post('/api/products/:id/sell', async (req, res) => {
     if (fetchError) throw fetchError;
     if (!product) return res.status(404).json({ error: 'Produto não encontrado' });
 
-    // Validate if stock is available
     if (product.qtd_inicial <= 0) {
       return res.status(400).json({ error: 'Produto fora de estoque' });
     }
 
-    // Update the product's quantities
     const { error: updateError } = await supabase
       .from('estoque')
       .update({
-        qtd_inicial: product.qtd_inicial - 1, // Reduce stock by 1
-        qtd_vendida: (product.qtd_vendida || 0) + 1 // Increment sold quantity
+        qtd_inicial: product.qtd_inicial - 1,
+        qtd_vendida: (product.qtd_vendida || 0) + 1
       })
       .eq('id', id);
 
@@ -154,36 +156,12 @@ app.post('/api/products/:id/sell', async (req, res) => {
       quantidadeVendida: (product.qtd_vendida || 0) + 1
     });
   } catch (error) {
-    console.error('Erro ao vender produto:', error.message);
-    res.status(500).json({ error: 'Erro ao processar a venda do produto' });
+    console.error('Erro ao processar venda:', error.message);
+    res.status(500).json({ error: 'Erro ao processar venda do produto' });
   }
 });
 
-app.get('/api/products/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { data, error } = await supabase
-      .from('estoque')
-      .select('*')
-      .eq('id', id)
-      .single(); // O ".single()" garante que apenas um único produto seja retornado
-
-    if (error) {
-      throw error; // Caso haja erro no Supabase
-    }
-
-    if (!data) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
-    }
-
-    res.json(data); // Retorna o produto encontrado
-  } catch (error) {
-    console.error('Erro ao buscar produto:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
-
-// Get sales statistics
+// Rota para obter estatísticas de vendas
 app.get('/api/statistics', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -201,12 +179,12 @@ app.get('/api/statistics', async (req, res) => {
 
     res.status(200).json(statistics);
   } catch (error) {
-    console.error('Error fetching statistics:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Erro ao buscar estatísticas:', error);
+    res.status(500).json({ error: 'Erro ao buscar estatísticas' });
   }
 });
 
-
+// Iniciar o servidor
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

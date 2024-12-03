@@ -7,25 +7,54 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Controle de Estoque</h1>
+    <!-- Barra de navegação -->
+    <nav class="navbar">
+        <div class="container-nav">
+            <h1 class="logo">Controle de Estoque</h1>
+            <ul class="nav-links">
+                <li><a href="login.html" class="btn-nav">Login</a></li>
+                <li><a href="register.html" class="btn-nav">Cadastrar</a></li>
+            </ul>
+        </div>
+    </nav>
 
+    <!-- Conteúdo principal -->
+    <div class="container">
+        <h1>Cadastro de Produtos</h1>
         <form id="productForm">
             <input type="text" id="productName" placeholder="Nome do Produto" required>
-            <textarea id="productDescription" placeholder="Descrição" required></textarea>
-            <input type="text" id="productCategory" placeholder="Categoria" required>
+            <textarea id="productDescription" placeholder="Descrição"></textarea>
+            <input type="text" id="productCategory" placeholder="Categoria">
             <input type="number" id="productCode" placeholder="Código do Produto" required>
             <input type="number" id="productPrice" placeholder="Preço" required>
             <input type="number" id="productQuantity" placeholder="Quantidade Inicial" required>
-            <button type="submit" id="submitButton" data-id="">Cadastrar Produto</button>
+            <button type="submit" id="submitButton">Cadastrar Produto</button>
         </form>
+
+        <!-- Pesquisa -->
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Pesquisar produtos...">
             <button onclick="searchProducts()">Buscar</button>
         </div>
-        
+
+        <!-- Lista de Produtos -->
         <h2>Lista de Produtos</h2>
-        <ul id="productList"></ul>
+        <table id="productTable">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Código</th>
+                    <th>Preço</th>
+                    <th>Quantidade</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Os dados dos produtos serão inseridos dinamicamente aqui -->
+            </tbody>
+        </table>
 
         <a href="statistics.html" class="btn-statistics">Ver Estatísticas de Vendas</a>
     </div>
@@ -33,4 +62,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
