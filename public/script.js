@@ -2,12 +2,13 @@
 const productForm = document.getElementById('productForm');
 const productList = document.getElementById('productList');
 let editingProductId = null;
+let alertedProducts = new Set();
 
 async function loadProducts() {
   try {
     console.log('Fetching products...');
     const response = await fetch('/api/products');
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Server response:', errorText);
@@ -30,13 +31,42 @@ async function loadProducts() {
       `;
       productList.appendChild(li);
 
-      if (product.qtd_inicial <= 5) {
+      // Verifica a quantidade e exibe o alerta se necessário
+      if (product.qtd_inicial <= 5 && !alertedProducts.has(product.id)) {
         alert(`Atenção! O produto "${product.nome}" está com apenas ${product.qtd_inicial} unidades em estoque.`);
+        alertedProducts.add(product.id); // Marca o produto como alertado
       }
     });
   } catch (error) {
     console.error('Error loading products:', error);
     alert('Erro ao carregar produtos: ' + error.message);
+  }
+}
+
+async function updateProductQuantity(id, newQuantity) {
+  try {
+    const response = await fetch(`/api/products/${id}`, {
+      method: 'PATCH', // Método para atualização parcial
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ qtd_inicial: newQuantity }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao atualizar a quantidade do produto');
+    }
+
+    // Verifica se o alerta deve ser exibido
+    if (newQuantity <= 5 && !alertedProducts.has(id)) {
+      alert(`Atenção! O produto com ID "${id}" está com apenas ${newQuantity} unidades em estoque.`);
+      alertedProducts.add(id); // Marca o produto como alertado
+    }
+
+    await loadProducts(); // Atualiza a lista de produtos
+  } catch (error) {
+    console.error('Erro ao atualizar quantidade do produto:', error);
+    alert('Erro ao atualizar quantidade: ' + error.message);
   }
 }
 
