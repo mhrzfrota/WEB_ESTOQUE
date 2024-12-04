@@ -9,7 +9,6 @@ const PORT = process.env.PORT || 3000;
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// Configurar CORS
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true,
@@ -17,13 +16,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Configurações básicas do servidor
 app.use(express.json());
 app.use(express.static('public'));
 
-// Rota raiz para redirecionar para login.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html')); // Serve o login.html como página inicial
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Rota de registro de usuário
